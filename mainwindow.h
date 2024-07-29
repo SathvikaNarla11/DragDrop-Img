@@ -23,6 +23,8 @@ class CustomScene;
 #include <QToolButton>
 #include <QAbstractButton>
 #include <QGraphicsView>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
 
 class MainWindow : public QMainWindow
 {
@@ -159,6 +161,14 @@ private:
     QAction *textAction;
     QAction *fillAction;
     QAction *lineAction;
+
+protected:
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
+
 };
 
 #endif // MAINWINDOW_H

@@ -6,6 +6,13 @@
 
 #include <QDomDocument>
 #include <QtWidgets>
+#include <QMimeData>
+
+#include <QApplication>
+#include <QMouseEvent>
+#include <QPixmap>
+
+#include <QByteArray>
 
 const int InsertTextButton = 10;
 
@@ -532,6 +539,9 @@ void MainWindow::createToolBox()
         imageWidget->setLayout(imageLayout);
         layout->addWidget(imageWidget, 0 + i / 2, i % 2);
 
+        imageButton->setAcceptDrops(false);
+        imageButton->installEventFilter(this);
+
     }
 
     layout->addWidget(createCellWidget(tr("OutPut"), CustomItem::Output), 8, 0);
@@ -961,8 +971,6 @@ QList<QGraphicsItem*> MainWindow::cloneItems(const QList<QGraphicsItem*>& items)
             copyMap[item] = qgraphicsitem_cast<CustomTextItem*>(item)->clone();
         }
     }
-
-    // connect customitem with new arrow
     foreach (QGraphicsItem* item, items)
     {
         if (item->type() == Arrow::Type)
@@ -986,3 +994,55 @@ QList<QGraphicsItem*> MainWindow::cloneItems(const QList<QGraphicsItem*>& items)
     return copyMap.values();
 }
 
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonPress)
+    {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (mouseEvent->button() == Qt::LeftButton)
+        {
+            QToolButton *button = qobject_cast<QToolButton *>(watched);
+            if (button)
+            {
+                QMimeData *mimeData = new QMimeData;
+                mimeData->setText(button->text());
+
+                QPixmap pixmap = button->icon().pixmap(button->iconSize());
+
+                QDrag *drag = new QDrag(this);
+                drag->setMimeData(mimeData);
+                drag->setPixmap(pixmap);
+                drag->setHotSpot(mouseEvent->pos());
+
+                drag->exec(Qt::CopyAction);
+                return true;
+            }
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
+}
+
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasFormat("application/x-image"))
+    {
+        event->acceptProposedAction();
+    }
+}
+void MainWindow::dragMoveEvent(QDragMoveEvent *event)
+{
+    event->accept();
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    if (event->mimeData()->hasText())
+    {
+        QGraphicsPixmapItem *item = new QGraphicsPixmapItem(QPixmap(QString(":/Icon/%1.png").arg(event->mimeData()->text().toLower().replace(" ", "_"))));
+        item->setPos(event->pos());
+        scene->addItem(item);
+        event->acceptProposedAction();
+    }
+}
